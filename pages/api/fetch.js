@@ -33,18 +33,49 @@ export default async function handler(req, res) {
     'x-rapidapi-host': HOST,
   };
 
+  let lastError = null;
+
   for (const ep of endpoints) {
     try {
       const r = await fetch(ep, { headers });
-      if (!r.ok) continue;
-      const data = await r.json();
+      const text = await r.text();
+      let data = null;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Ignore parse errors, preserve text for debugging
+      }
+
+      if (!r.ok) {
+        lastError = {
+          endpoint: ep,
+          status: r.status,
+          statusText: r.statusText,
+          body: data || text,
+        };
+        continue;
+      }
+
       if (data && !data.error && !data.detail) {
         return res.status(200).json(data);
       }
+
+      lastError = {
+        endpoint: ep,
+        status: r.status,
+        statusText: r.statusText,
+        body: data || text,
+      };
     } catch (e) {
+      lastError = { endpoint: ep, error: e.message };
       continue;
     }
   }
 
-  return res.status(500).json({ error: 'Could not fetch video from any endpoint' });
+  const errorMessage = lastError?.status === 403
+    ? 'RapidAPI key is not authorized for this API. Check your subscription and RAPIDAPI_KEY.'
+    : 'Could not fetch video from any endpoint. See details for the last RapidAPI response.';
+
+  return res.status(500).json({ error: errorMessage, details: lastError });
 }

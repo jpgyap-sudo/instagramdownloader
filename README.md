@@ -21,4 +21,6 @@ npm run dev
 
 In Vercel, add an environment variable named `RAPIDAPI_KEY` with your API key value under the project settings.
 
+Also make sure your RapidAPI account is subscribed to the `instagram-scraper-stable-api` API. If the key is valid but the API is not subscribed, the route will fail with an authorization error.
+
 This keeps the secret out of source control while allowing the API route at `pages/api/fetch.js` to access the key securely.
